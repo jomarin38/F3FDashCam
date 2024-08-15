@@ -54,7 +54,7 @@ class DashcamTCPClient(Thread):
         super().__init__()
 
     def run(self):
-        if not self.stop:
+        while not self.stop:
             if self.status == tcpClient_Status.Init:
                 try:
                     gateway = self.server_ip
