@@ -4,6 +4,8 @@ from picamera2.encoders import H264Encoder, Quality
 from picamera2 import Picamera2
 from datetime import datetime
 import time
+import socket
+import json
 
 class TimerThread(Thread):
     def __init__(self, camera_handler):
@@ -21,7 +23,15 @@ class TimerThread(Thread):
 
 import socketserver
 
-class DashcamTCPHandler(socketserver.BaseRequestHandler):
+class tcpClient_Status():
+    Init = 0
+    Listen = 1
+    Accepted = 2
+    Connected = 3
+    InProgress = 4
+    Close = 5
+
+class DashcamTCPClient(Thread):
     """
     The request handler class for our server.
 
@@ -30,11 +40,80 @@ class DashcamTCPHandler(socketserver.BaseRequestHandler):
     client.
     """
 
-    def __init__(self, camera):
+    def __init__(self, server_ip, server_port):
         self.picam2 = Picamera2()
         self.picam2.configure(picam2.create_video_configuration())
         self.encoder = H264Encoder()
         self.running = False
+        self.stop = False
+        self.server_ip = server_ip
+        self.server_port = server_port
+        self.__debug = True
+        self.timer_thread = None
+
+    def run(self):
+        if not self.stop:
+            if self.status == tcpClient_Status.Init:
+                try:
+                    gateway = self.server_ip
+                    self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    self.client.connect((gateway, self.server_port))
+                except socket.error as e:
+                    print(str(e))
+                    del (self.client)
+                    self.client = None
+                    time.sleep(5)
+                else:
+                    if self.__debug:
+                        print(f'Connection...')
+                    self.status = tcpClient_Status.Connected
+            elif self.status == tcpClient_Status.Connected:
+                data = ''
+                try:
+                    self.client.sendall(bytes("F3Fdashcam", "utf-8"))
+                except socket.error as e:
+                    print(str(e))
+                try:
+                    data = str(self.client.recv(1024), "utf-8")
+                except socket.error as e:
+                    print(str(e))
+                if self.__debug:
+                    print(f'data received : {data}')
+                if data == "dashcamServerStarted":
+                    self.status = tcpClient_Status.InProgress
+            elif self.status == tcpClient_Status.InProgress:
+                try:
+                    data = self.client.recv(2048)
+                except socket.error as e:
+                    print(str(e))
+                else:
+                    if data == b'':
+                        try:
+                            self.client.sendall(bytes("Test", "utf-8"))
+                        except socket.error as e:
+                            print(str(e))
+                            self.client.close()
+                            self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                            self.status = tcpClient_Status.Init
+                            del self.client
+                            self.client = None
+                    else:
+                        self.datareceived(data)
+            elif self.status == tcpClient_Status.Close:
+                self.client.close()
+                self.status = tcpClient_Status.Close
+
+    def datareceived(self, data):
+        print(data)
+        m = data.decode('utf-8').split()
+        if len(m)>0:
+            if m[0] == "ContestData":
+                orderstring = data.decode('utf-8')[len(m[0]) + 1:]
+                if self.__debug:
+                    print('datasize:' + str(len(orderstring)))
+                    print(orderstring)
+                orderjson = json.loads(orderstring)
+                self.start_recording_with_context(orderjson['pilot'], orderjson['round'])
 
     def sequence_timeout(self):
         self._stop_recording()
@@ -58,28 +137,17 @@ class DashcamTCPHandler(socketserver.BaseRequestHandler):
 
 
     def _start_recording(self, filename):
+        if self.timer_thread is not None:
+            self.timer_thread.ignore_event()
         self._stop_recording()
         self.running = True
         picam2.start_recording(encoder, filename, quality=Quality.HIGH)
-        timer_thread = TimerThread(self)
-        timer_thread.start()
-
-    def handle(self):
-        # self.request is the TCP socket connected to the client
-        self.data = self.request.recv(1024).strip()
-        print("{} wrote:".format(self.client_address[0]))
-        print(self.data)
-        # just send back the same data, but upper-cased
-        self.request.sendall(self.data.upper())
-        # here you can do self.request.sendall(use the os library and display the ls command)
+        self.timer_thread = TimerThread(self)
+        self.timer_thread.start()
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 9999
 
-
-
-    # Create the server, binding to localhost on port 9999
-    with socketserver.TCPServer((HOST, PORT), DashcamTCPHandler) as server:
-        # Activate the server; this will keep running until you
-        # interrupt the program with Ctrl-C
-        server.serve_forever()
+    tcp_thread = DashcamTCPClient(HOST, PORT)
+    tcp_thread.start()
+    tcp_thread.join()
