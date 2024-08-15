@@ -50,6 +50,7 @@ class DashcamTCPClient(Thread):
         self.server_port = server_port
         self.__debug = True
         self.timer_thread = None
+        super().__init__()
 
     def run(self):
         if not self.stop:
