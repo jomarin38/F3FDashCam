@@ -50,6 +50,7 @@ class DashcamTCPClient(Thread):
         self.server_port = server_port
         self.__debug = True
         self.timer_thread = None
+        self.status = tcpClient_Status.Init
         super().__init__()
 
     def run(self):
@@ -147,7 +148,7 @@ class DashcamTCPClient(Thread):
         self.timer_thread.start()
 
 if __name__ == "__main__":
-    HOST, PORT = "localhost", 9999
+    HOST, PORT = "192.168.0.13", 10000
 
     tcp_thread = DashcamTCPClient(HOST, PORT)
     tcp_thread.start()
