@@ -42,7 +42,7 @@ class DashcamTCPClient(Thread):
 
     def __init__(self, server_ip, server_port):
         self.picam2 = Picamera2()
-        self.picam2.configure(picam2.create_video_configuration())
+        self.picam2.configure(self.picam2.create_video_configuration())
         self.encoder = H264Encoder()
         self.running = False
         self.stop = False
@@ -141,7 +141,7 @@ class DashcamTCPClient(Thread):
             self.timer_thread.ignore_event()
         self._stop_recording()
         self.running = True
-        picam2.start_recording(encoder, filename, quality=Quality.HIGH)
+        self.picam2.start_recording(self.encoder, filename, quality=Quality.HIGH)
         self.timer_thread = TimerThread(self)
         self.timer_thread.start()
 
