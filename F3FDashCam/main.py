@@ -3,9 +3,33 @@ from threading import Thread
 from picamera2.encoders import H264Encoder, Quality
 from picamera2 import Picamera2
 from datetime import datetime
+import os
+import shutil
+from pathlib import Path
 import time
 import socket
 import json
+
+MEDIA_DIR = '/home/pi/videos'
+MEDIA_QUOTA = 10* (2**30)
+GARBAGE_COLLECTION_RATIO = 0.25
+
+class GarbageCollector(Thread):
+    def __init__(self, target_space):
+        Thread.__init__(self)
+        self.stopped = False
+        self.target_space = target_space
+
+    def run(self):
+        paths = sorted(Path(MEDIA_DIR).iterdir(), key=os.path.getmtime)
+        saved_space = 0
+        i = 1
+        while i <= len(paths) and saved_space<self.target_space:
+            file_to_remove = str(paths[-i])
+            saved_space += os.stat(file_to_remove).st_size
+            i += 1
+            os.remove(file_to_remove)
+
 
 class TimerThread(Thread):
     def __init__(self, camera_handler):
@@ -139,6 +163,10 @@ class DashcamTCPClient(Thread):
 
 
     def _start_recording(self, filename):
+        _, used, _ = shutil.disk_usage(MEDIA_DIR)
+        if used > MEDIA_QUOTA:
+            garbage_collector_thread = GarbageCollector(int(MEDIA_QUOTA*GARBAGE_COLLECTION_RATIO))
+            garbage_collector_thread.start()
         if self.timer_thread is not None:
             self.timer_thread.ignore_event()
         self._stop_recording()
