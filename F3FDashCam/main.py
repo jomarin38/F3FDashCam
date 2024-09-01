@@ -79,6 +79,7 @@ class DashcamTCPClient(Thread):
         super().__init__()
 
     def run(self):
+        self.start_anonymous_recording()
         while not self.stop:
             if self.status == tcpClient_Status.Init:
                 try:
