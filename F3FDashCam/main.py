@@ -11,7 +11,7 @@ import socket
 import json
 
 MEDIA_DIR = '/home/pi/Videos'
-MEDIA_QUOTA = 1* (2**30)
+MEDIA_QUOTA = 10* (2**30)
 GARBAGE_COLLECTION_RATIO = 0.25
 
 class GarbageCollector(Thread):
@@ -174,7 +174,7 @@ class DashcamTCPClient(Thread):
             self.timer_thread.ignore_event()
         self._stop_recording()
         self.running = True
-        self.picam2.start_recording(self.encoder, filename, quality=Quality.HIGH)
+        self.picam2.start_recording(self.encoder, filename, quality=Quality.MEDIUM)
         self.timer_thread = TimerThread(self)
         self.timer_thread.start()
 
