@@ -28,6 +28,7 @@ class GarbageCollector(Thread):
             file_to_remove = str(paths[-i])
             saved_space += os.stat(file_to_remove).st_size
             i += 1
+            print('Removing {}'.format(file_to_remove))
             os.remove(file_to_remove)
 
 
