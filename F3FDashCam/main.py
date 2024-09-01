@@ -163,7 +163,7 @@ class DashcamTCPClient(Thread):
 
 
     def _start_recording(self, filename):
-        _, used, _ = shutil.disk_usage(MEDIA_DIR)
+        used = self._get_dir_size(MEDIA_DIR)
         if used > MEDIA_QUOTA:
             print('Usage : {}, Quota : {}'.format(used, MEDIA_QUOTA))
             garbage_collector_thread = GarbageCollector(int(MEDIA_QUOTA*GARBAGE_COLLECTION_RATIO))
@@ -175,6 +175,16 @@ class DashcamTCPClient(Thread):
         self.picam2.start_recording(self.encoder, filename, quality=Quality.HIGH)
         self.timer_thread = TimerThread(self)
         self.timer_thread.start()
+
+    def _get_dir_size(self, path):
+        total = 0
+        with os.scandir(path) as it:
+            for entry in it:
+                if entry.is_file():
+                    total += entry.stat().st_size
+                elif entry.is_dir():
+                    total += self._get_dir_size(entry.path)
+        return total
 
 if __name__ == "__main__":
     HOST, PORT = "192.168.0.13", 10000
