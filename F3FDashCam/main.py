@@ -23,7 +23,7 @@ class GarbageCollector(Thread):
     def run(self):
         paths = sorted(Path(MEDIA_DIR).iterdir(), key=os.path.getmtime)
         saved_space = 0
-        i = 1
+        i = 0
         while i <= len(paths) and saved_space<self.target_space:
             file_to_remove = str(paths[i])
             saved_space += os.stat(file_to_remove).st_size
@@ -157,8 +157,8 @@ class DashcamTCPClient(Thread):
 
 
     def start_recording_with_context(self, pilot_name, round_number):
-        filename = '{}_{}_{}.h264'.format(pilot_name,
-                                          str(round_number),
+        filename = '{}_{}_{}.h264'.format(str(round_number),
+                                          '_'.join(pilot_name.split()),
                                           datetime.now().strftime('%Y-%m-%d-%H-%M-%S'))
         self._start_recording(os.path.join(MEDIA_DIR, filename))
 
