@@ -10,8 +10,8 @@ import time
 import socket
 import json
 
-MEDIA_DIR = '/home/pi/videos'
-MEDIA_QUOTA = 10* (2**30)
+MEDIA_DIR = '/home/pi/Videos'
+MEDIA_QUOTA = 1* (2**30)
 GARBAGE_COLLECTION_RATIO = 0.25
 
 class GarbageCollector(Thread):
@@ -152,19 +152,20 @@ class DashcamTCPClient(Thread):
 
     def start_anonymous_recording(self):
         filename = datetime.now().strftime('%Y-%m-%d-%H-%M-%S') + '.h264'
-        self._start_recording(filename)
+        self._start_recording(os.path.join(MEDIA_DIR, filename))
 
 
     def start_recording_with_context(self, pilot_name, round_number):
         filename = '{}_{}_{}.h264'.format(pilot_name,
                                           str(round_number),
                                           datetime.now().strftime('%Y-%m-%d-%H-%M-%S'))
-        self._start_recording(filename)
+        self._start_recording(os.path.join(MEDIA_DIR, filename))
 
 
     def _start_recording(self, filename):
         _, used, _ = shutil.disk_usage(MEDIA_DIR)
         if used > MEDIA_QUOTA:
+            print('Usage : {}, Quota : {}'.format(used, MEDIA_QUOTA))
             garbage_collector_thread = GarbageCollector(int(MEDIA_QUOTA*GARBAGE_COLLECTION_RATIO))
             garbage_collector_thread.start()
         if self.timer_thread is not None:
