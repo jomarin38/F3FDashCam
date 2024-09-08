@@ -79,8 +79,9 @@ class DashcamTCPClient(Thread):
         super().__init__()
 
     def run(self):
-        self.start_anonymous_recording()
+        #self.start_anonymous_recording()
         while not self.stop:
+            print('Status : ' + str(self.status))
             if self.status == tcpClient_Status.Init:
                 try:
                     gateway = self.server_ip
@@ -189,7 +190,7 @@ class DashcamTCPClient(Thread):
         return total
 
 if __name__ == "__main__":
-    HOST, PORT = "192.168.0.13", 10000
+    HOST, PORT = "192.168.1.251", 10000
 
     tcp_thread = DashcamTCPClient(HOST, PORT)
     tcp_thread.start()
