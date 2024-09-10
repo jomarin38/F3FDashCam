@@ -108,7 +108,7 @@ class DashcamTCPClient(Thread):
                     print(str(e))
                 if self.__debug:
                     print(f'data received : {data}')
-                if data == "dashcamServerStarted":
+                if data.startswith("dashcamServerStarted"):
                     self.status = tcpClient_Status.InProgress
             elif self.status == tcpClient_Status.InProgress:
                 try:
