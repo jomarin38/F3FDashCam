@@ -79,70 +79,7 @@ class DashcamTCPClient(Thread):
         super().__init__()
 
     def run(self):
-        #self.start_anonymous_recording()
-        while not self.stop:
-            print('Status : ' + str(self.status))
-            if self.status == tcpClient_Status.Init:
-                try:
-                    gateway = self.server_ip
-                    self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    self.client.connect((gateway, self.server_port))
-                except socket.error as e:
-                    print(str(e))
-                    del (self.client)
-                    self.client = None
-                    time.sleep(5)
-                else:
-                    if self.__debug:
-                        print(f'Connection...')
-                    self.status = tcpClient_Status.Connected
-            elif self.status == tcpClient_Status.Connected:
-                data = ''
-                try:
-                    self.client.sendall(bytes("F3Fdashcam", "utf-8"))
-                except socket.error as e:
-                    print(str(e))
-                try:
-                    data = str(self.client.recv(1024), "utf-8")
-                except socket.error as e:
-                    print(str(e))
-                if self.__debug:
-                    print(f'data received : {data}')
-                if data.startswith("dashcamServerStarted"):
-                    self.status = tcpClient_Status.InProgress
-            elif self.status == tcpClient_Status.InProgress:
-                try:
-                    data = self.client.recv(2048)
-                except socket.error as e:
-                    print(str(e))
-                else:
-                    if data == b'':
-                        try:
-                            self.client.sendall(bytes("Test", "utf-8"))
-                        except socket.error as e:
-                            print(str(e))
-                            self.client.close()
-                            self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                            self.status = tcpClient_Status.Init
-                            del self.client
-                            self.client = None
-                    else:
-                        self.datareceived(data)
-            elif self.status == tcpClient_Status.Close:
-                self.client.close()
-                self.status = tcpClient_Status.Close
-
-    def datareceived(self, data):
-        print(data)
-        m = data.decode('utf-8').split()
-        if len(m)>0:
-            if m[0] == "ContestData":
-                orderstring = data.decode('utf-8')[len(m[0]) + 1:]
-                if self.__debug:
-                    print('datasize:' + str(len(orderstring)))
-                    print(orderstring)
-                orderjson = json.loads(orderstring)
-                self.start_recording_with_context(orderjson['pilot'], orderjson['round'])
+        self.start_anonymous_recording()
 
     def sequence_timeout(self):
         self._stop_recording()
